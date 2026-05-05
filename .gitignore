@@ -15,6 +15,7 @@ yarn-error.log
 *.tfstate
 *.tfstate.backup
 
+
 # Ignorar planes de ejecución guardados
 *.tfplan
 
@@ -32,11 +33,3 @@ yarn-error.log
 .vscode/
 .idea/
 *.swp
-
-# ========================
-# Otros
-# ========================
-# Ignorar archivos de log y otros archivos temporales
-*.log
-package-lock.json
-yarn.lock

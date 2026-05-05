@@ -112,7 +112,7 @@ resource "aws_vpc_endpoint" "s3" {
 
 # --- SECURITY GROUPS ---
 resource "aws_security_group" "sg_vpce_sqs" {
-  name   = "sg-vpce-sqs-${var.environment}"
+  name   = "${var.project_name}-vpce-sqs-${var.environment}"
   vpc_id = aws_vpc.main.id
   
   ingress {
@@ -124,7 +124,7 @@ resource "aws_security_group" "sg_vpce_sqs" {
 }
 
 resource "aws_security_group" "sg_lambdas" {
-  name   = "sg-lambdas-${var.environment}"
+  name   = "${var.project_name}-lambdas-${var.environment}"
   vpc_id = aws_vpc.main.id
   
   egress {
