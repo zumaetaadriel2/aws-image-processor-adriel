@@ -1,0 +1,42 @@
+# ========================
+# Node.js
+# ========================
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ========================
+# Terraform
+# ========================
+# Ignorar el directorio de plugins y módulos locales
+.terraform/
+
+# Ignorar los archivos de estado (¡MUY IMPORTANTE PARA NO SUBIR SECRETOS/ESTADOS!)
+*.tfstate
+*.tfstate.backup
+
+# Ignorar planes de ejecución guardados
+*.tfplan
+
+# Ignorar archivos de variables generales (excepto los de tu carpeta envs/)
+*.tfvars
+!iac/envs/*.tfvars
+
+# Ignorar los archivos ZIP generados por el bloque "archive_file" de Terraform
+*.zip
+
+# ========================
+# OS / Editor de código
+# ========================
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ========================
+# Otros
+# ========================
+# Ignorar archivos de log y otros archivos temporales
+*.log
+package-lock.json
+yarn.lock
