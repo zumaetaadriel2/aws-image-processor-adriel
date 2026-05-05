@@ -1,24 +1,26 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from 'crypto';
 
-const s3Client = new S3Client({});
+// Reutilizamos la conexión TCP (Mejor rendimiento y menor costo)
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const handler = async (event) => {
-    console.log("Iniciando procesamiento de carga (Adriel Zumaeta):", event.requestContext?.requestId);
-    
     try {
         const targetBucket = process.env.S3_BUCKET;
         const targetPrefix = process.env.UPLOAD_PREFIX || 'uploads/';
         
-        const fileExt = event.headers['content-type']?.split('/')[1] || 'png';
+        // Verificación de Payload
+        if (!event.body) {
+            return { statusCode: 400, body: JSON.stringify({ error: "No image data provided" }) };
+        }
+
+        const fileExt = (event.headers['content-type'] || 'image/png').split('/')[1];
         const uniqueFileName = `${randomUUID()}.${fileExt}`;
         const objectKey = `${targetPrefix}${uniqueFileName}`;
 
         const imageBuffer = event.isBase64Encoded 
             ? Buffer.from(event.body, 'base64') 
             : Buffer.from(event.body);
-
-        if (!imageBuffer.length) throw new Error("Payload vacío.");
 
         await s3Client.send(new PutObjectCommand({
             Bucket: targetBucket,
@@ -29,10 +31,10 @@ export const handler = async (event) => {
 
         return {
             statusCode: 201,
-            body: JSON.stringify({ author: "Adriel Zumaeta", status: "success", file: uniqueFileName })
+            body: JSON.stringify({ message: "Upload success", file: uniqueFileName })
         };
     } catch (error) {
-        console.error("Error en function-upload:", error);
+        console.error("Upload error:", error);
         return { statusCode: 500, body: JSON.stringify({ error: "Internal Server Error" }) };
     }
 };

@@ -1,22 +1,32 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from 'sharp';
 
-const s3Client = new S3Client({});
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const handler = async (event) => {
-    for (const record of event.Records) {
-        const s3EventData = JSON.parse(record.body).Records[0].s3;
+    const records = event.Records;
+    
+    for (const record of records) {
+        const body = JSON.parse(record.body);
+        
+        // Verificación en caso de eventos de prueba de SQS
+        if (!body.Records || !body.Records[0].s3) continue;
+
+        const s3EventData = body.Records[0].s3;
         const bucketName = s3EventData.bucket.name;
         const originalKey = decodeURIComponent(s3EventData.object.key.replace(/\+/g, ' '));
 
         try {
-            console.log(`(Adriel Zumaeta) Procesando imagen: ${originalKey}`);
-            
-            // 1. Descarga S3
             const { Body } = await s3Client.send(new GetObjectCommand({ Bucket: bucketName, Key: originalKey }));
-            const imgBuffer = Buffer.concat(await Body.toArray());
+            
+            // AWS SDK v3: convertir el stream a buffer
+            const chunks = [];
+            for await (const chunk of Body) {
+                chunks.push(chunk);
+            }
+            const imgBuffer = Buffer.concat(chunks);
 
-            // 2. Transformación con Sharp (Círculo 40x40)
+            // Crear recorte circular 40x40 (Sharp)
             const maskSvg = Buffer.from('<svg width="40" height="40"><circle cx="20" cy="20" r="20" fill="white"/></svg>');
             
             const croppedBuffer = await sharp(imgBuffer)
@@ -25,7 +35,6 @@ export const handler = async (event) => {
                 .png()
                 .toBuffer();
 
-            // 3. Subida a 'processed/'
             const finalKey = originalKey.replace('uploads/', 'processed/').replace(/\.[^.]+$/, '_circular.png');
             
             await s3Client.send(new PutObjectCommand({
@@ -35,10 +44,12 @@ export const handler = async (event) => {
                 ContentType: 'image/png'
             }));
 
-            console.log(`Imagen recortada exitosamente: ${finalKey}`);
+            console.log(`Successfully processed and saved to ${finalKey}`);
         } catch (err) {
-            console.error(`Fallo al procesar ${originalKey}:`, err);
-            throw err; // Obliga a SQS a reintentar
+            console.error(`Failed processing ${originalKey}:`, err);
+            // El throw es crítico: hace que SQS devuelva el mensaje a la cola.
+            // Si falla 3 veces, se enviará automáticamente a la DLQ.
+            throw err; 
         }
     }
 };
