@@ -64,6 +64,7 @@ Una vez desplegado, Terraform devolverá un `api_endpoint`. Puede probar la carg
 curl -X POST <API_ENDPOINT_URL> \
   -H "Content-Type: image/png" \
   --data-binary "@tu_foto.png"
+```
 
 ## 🛡️ Buenas Prácticas: Control de Costos y Limpieza
 
@@ -86,4 +87,4 @@ cd iac/
 terraform workspace select <entorno>
 
 # Ejecutar la destrucción automatizada
-terraform destroy -var-file="envs/<entorno>.tfvars" -auto-approve 
+terraform destroy -var-file="envs/<entorno>.tfvars" -auto-approve ´
