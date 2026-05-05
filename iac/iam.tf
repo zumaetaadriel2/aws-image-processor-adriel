@@ -1,52 +1,78 @@
-# --- ROLES BASE ---
+# --- ROL PARA LAMBDA UPLOAD ---
 resource "aws_iam_role" "upload_role" {
   name = "upload-lambda-role-${var.environment}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" } }]
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
   })
 }
 
+resource "aws_iam_role_policy_attachment" "upload_basic" {
+  role       = aws_iam_role.upload_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "upload_vpc" {
+  role       = aws_iam_role.upload_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
+resource "aws_iam_policy" "upload_s3" {
+  name = "upload-s3-policy-${var.environment}"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = ["${aws_s3_bucket.images.arn}/uploads/*"]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "upload_s3_attach" {
+  role       = aws_iam_role.upload_role.name
+  policy_arn = aws_iam_policy.upload_s3.arn
+}
+
+# --- ROL PARA LAMBDA CROP ---
 resource "aws_iam_role" "crop_role" {
   name = "crop-lambda-role-${var.environment}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" } }]
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
   })
 }
 
-# --- POLÍTICAS ADMINISTRADAS (Logs y VPC) ---
-resource "aws_iam_role_policy_attachment" "upload_vpc_basic" {
-  role       = aws_iam_role.upload_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+resource "aws_iam_role_policy_attachment" "crop_basic" {
+  role       = aws_iam_role.crop_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_role_policy_attachment" "crop_vpc_basic" {
+resource "aws_iam_role_policy_attachment" "crop_vpc" {
   role       = aws_iam_role.crop_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# --- POLÍTICAS ESPECÍFICAS (S3 y SQS) ---
-resource "aws_iam_policy" "upload_s3_policy" {
-  name        = "upload-s3-policy-${var.environment}"
-  description = "Permite a Upload Lambda escribir SOLO en uploads/"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:PutObject"]
-      Resource = ["${aws_s3_bucket.images.arn}/uploads/*"]
-    }]
-  })
-}
-resource "aws_iam_role_policy_attachment" "upload_s3_attach" {
-  role       = aws_iam_role.upload_role.name
-  policy_arn = aws_iam_policy.upload_s3_policy.arn
-}
-
-resource "aws_iam_policy" "crop_s3_sqs_policy" {
-  name        = "crop-s3-sqs-policy-${var.environment}"
-  description = "Permite a Crop Lambda leer de uploads, escribir en processed y manejar SQS"
+resource "aws_iam_policy" "crop_permissions" {
+  name = "crop-permissions-policy-${var.environment}"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -73,7 +99,8 @@ resource "aws_iam_policy" "crop_s3_sqs_policy" {
     ]
   })
 }
-resource "aws_iam_role_policy_attachment" "crop_s3_sqs_attach" {
+
+resource "aws_iam_role_policy_attachment" "crop_permissions_attach" {
   role       = aws_iam_role.crop_role.name
-  policy_arn = aws_iam_policy.crop_s3_sqs_policy.arn
+  policy_arn = aws_iam_policy.crop_permissions.arn
 }

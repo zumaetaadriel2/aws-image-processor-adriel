@@ -30,20 +30,15 @@ resource "aws_apigatewayv2_stage" "default" {
 
   default_route_settings {
     throttling_burst_limit = 5000
-    throttling_rate_limit  = 10000 # 10,000 rps según el diagrama
+    throttling_rate_limit  = 10000
   }
 
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.apigw_logs.arn
     format = jsonencode({
-      requestId      = "$context.requestId"
-      ip             = "$context.identity.sourceIp"
-      requestTime    = "$context.requestTime"
-      httpMethod     = "$context.httpMethod"
-      routeKey       = "$context.routeKey"
-      status         = "$context.status"
-      protocol       = "$context.protocol"
-      responseLength = "$context.responseLength"
+      requestId = "$context.requestId"
+      ip        = "$context.identity.sourceIp"
+      status    = "$context.status"
     })
   }
 }
@@ -57,6 +52,6 @@ resource "aws_lambda_permission" "apigw_invoke" {
 }
 
 output "api_endpoint" {
-  description = "El URL final de tu API Gateway"
+  description = "URL para hacer la peticion POST con Postman o cURL"
   value       = "${aws_apigatewayv2_api.http_api.api_endpoint}/upload"
 }
