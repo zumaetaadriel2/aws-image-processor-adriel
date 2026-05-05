@@ -64,3 +64,26 @@ Una vez desplegado, Terraform devolverá un `api_endpoint`. Puede probar la carg
 curl -X POST <API_ENDPOINT_URL> \
   -H "Content-Type: image/png" \
   --data-binary "@tu_foto.png"
+
+## 🛡️ Buenas Prácticas: Control de Costos y Limpieza
+
+Una de las prácticas fundamentales en la Gestión de Infraestructura Cloud es el **ciclo de vida de recursos**. Mantener recursos activos sin uso genera costos innecesarios (especialmente NAT Gateways y VPC Endpoints).
+
+### Protocolo de Destrucción (Recomendado)
+
+Se ha establecido como regla de oro ejecutar la destrucción total de la infraestructura al finalizar las pruebas o validaciones en cada entorno.
+
+**Pasos críticos antes de destruir:**
+1. **Vaciar el Almacenamiento:** Entre a la consola de AWS -> S3 y vacíe el bucket `adriel-img-proc-*-images-zumaeta`. Terraform no puede eliminar buckets que contengan objetos.
+2. **Cierre de Sesiones:** Asegúrese de que no haya túneles o conexiones activas a la red.
+
+**Comando de limpieza total:**
+```bash
+# Regresar a la carpeta de infraestructura
+cd iac/
+
+# Seleccionar el entorno deseado
+terraform workspace select <entorno>
+
+# Ejecutar la destrucción automatizada
+terraform destroy -var-file="envs/<entorno>.tfvars" -auto-approve 
