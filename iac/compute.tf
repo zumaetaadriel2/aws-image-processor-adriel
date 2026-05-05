@@ -13,12 +13,20 @@ resource "aws_lambda_function" "upload" {
   timeout          = 30
   filename         = data.archive_file.upload_zip.output_path
   source_code_hash = data.archive_file.upload_zip.output_base64sha256
+  
   vpc_config {
-    subnet_ids         = [aws_subnet.priv_a.id, aws_subnet.priv_b.id]
-    security_group_ids = [aws_security_group.sg_upload.id]
+    subnet_ids         = [
+      aws_subnet.priv_a.id,
+      aws_subnet.priv_b.id
+    ]
+    security_group_ids = [aws_security_group.sg_lambdas.id]
   }
+  
   environment {
-    variables = { S3_BUCKET = aws_s3_bucket.images.id, UPLOAD_PREFIX = "uploads/" }
+    variables = {
+      S3_BUCKET     = aws_s3_bucket.images.id
+      UPLOAD_PREFIX = "uploads/"
+    }
   }
 }
 
@@ -37,12 +45,20 @@ resource "aws_lambda_function" "crop" {
   timeout          = 60
   filename         = data.archive_file.crop_zip.output_path
   source_code_hash = data.archive_file.crop_zip.output_base64sha256
+  
   vpc_config {
-    subnet_ids         = [aws_subnet.priv_a.id, aws_subnet.priv_b.id]
-    security_group_ids = [aws_security_group.sg_crop.id]
+    subnet_ids         = [
+      aws_subnet.priv_a.id,
+      aws_subnet.priv_b.id
+    ]
+    security_group_ids = [aws_security_group.sg_lambdas.id]
   }
+  
   environment {
-    variables = { S3_BUCKET = aws_s3_bucket.images.id, PROCESSED_PREFIX = "processed/" }
+    variables = {
+      S3_BUCKET        = aws_s3_bucket.images.id
+      PROCESSED_PREFIX = "processed/"
+    }
   }
 }
 

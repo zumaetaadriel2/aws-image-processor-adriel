@@ -2,10 +2,38 @@ resource "aws_s3_bucket" "images" {
   bucket = "${var.project_name}-${var.environment}-images-zumaeta"
 }
 
+resource "aws_s3_bucket_public_access_block" "images_public_block" {
+  bucket                  = aws_s3_bucket.images.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "images_lifecycle" {
   bucket = aws_s3_bucket.images.id
-  rule { id = "uploads", status = "Enabled", filter { prefix = "uploads/" }, expiration { days = 30 } }
-  rule { id = "processed", status = "Enabled", filter { prefix = "processed/" }, expiration { days = 90 } }
+  
+  rule {
+    id     = "uploads"
+    status = "Enabled"
+    filter {
+      prefix = "uploads/"
+    }
+    expiration {
+      days = 30
+    }
+  }
+  
+  rule {
+    id     = "processed"
+    status = "Enabled"
+    filter {
+      prefix = "processed/"
+    }
+    expiration {
+      days = 90
+    }
+  }
 }
 
 resource "aws_sqs_queue" "image_dlq" {
@@ -18,6 +46,7 @@ resource "aws_sqs_queue" "image_queue" {
   visibility_timeout_seconds = 360
   message_retention_seconds  = 86400
   receive_wait_time_seconds  = 20
+  
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.image_dlq.arn
     maxReceiveCount     = 3
@@ -28,15 +57,32 @@ resource "aws_sqs_queue_policy" "s3_to_sqs" {
   queue_url = aws_sqs_queue.image_queue.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow", Principal = { Service = "s3.amazonaws.com" }, Action = "sqs:SendMessage"
-      Resource = aws_sqs_queue.image_queue.arn, Condition = { ArnLike = { "aws:SourceArn": aws_s3_bucket.images.arn } }
-    }]
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.image_queue.arn
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" : aws_s3_bucket.images.arn
+          }
+        }
+      }
+    ]
   })
 }
 
 resource "aws_s3_bucket_notification" "s3_notif" {
   bucket = aws_s3_bucket.images.id
-  queue { queue_arn = aws_sqs_queue.image_queue.arn, events = ["s3:ObjectCreated:*"], filter_prefix = "uploads/" }
+  
+  queue {
+    queue_arn     = aws_sqs_queue.image_queue.arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_prefix = "uploads/"
+  }
+  
   depends_on = [aws_sqs_queue_policy.s3_to_sqs]
 }
